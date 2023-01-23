@@ -1,0 +1,56 @@
+version: "3.8"
+services:
+  rabbitmq:
+    image: rabbitmq:latest
+    container_name: 'rabbitmq'
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+        - ./volumes/rabbitmq/data/:/var/lib/rabbitmq/
+        - ./volumes/rabbitmq/log/:/var/log/rabbitmq/
+  minio:
+      image: minio/minio
+      container_name: 'minio'
+      volumes:
+          - ./volumes/minio/data:/data
+      ports:
+          - 9000:9000
+      environment:
+          MINIO_ACCESS_KEY: 'minioadmin'
+          MINIO_SECRET_KEY: 'minioadmin'
+      command: server /data
+  openalpr:
+    build: ./openalpr
+    container_name: 'openalpr'
+    restart: on-failure
+    ports:
+      - "3001:3000"
+    links:
+      - rabbitmq
+      - minio
+  mailhog:
+    image: mailhog/mailhog
+    logging:
+      driver: 'none'
+    ports:
+      - 1025:1025 
+      - 8025:8025 
+  mysql:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_db_data_container:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+  app:
+    build: .
+    container_name: 'app'
+    restart: on-failure
+    ports:
+      - "3000:3000"
+volumes:
+  mysql_db_data_container:
