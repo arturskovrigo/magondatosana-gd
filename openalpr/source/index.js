@@ -20,7 +20,7 @@ var minioClient = new minio.Client(
 );
 
 
-const mailURL = 'amqp://mailhog:1025';
+const mailURL = 'mailhog:1025';
 var nodemailer = require('nodemailer');
 const mailPort = 1025;
 
@@ -34,7 +34,7 @@ var mailer = nodemailer.createTransport({
     },
 });
 const mysql = require('mysql2');
-const mysqlURL = 'amqp://mysql:3306';
+const mysqlURL = 'mysql://db:3306';
 const database = mysql.createConnection({
   host: mysqlURL,
   user: 'root',

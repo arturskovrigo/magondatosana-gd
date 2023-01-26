@@ -7,8 +7,10 @@ services:
       - 5672:5672
       - 15672:15672
     volumes:
-        - ./volumes/rabbitmq/data/:/var/lib/rabbitmq/
-        - ./volumes/rabbitmq/log/:/var/log/rabbitmq/
+      - ./volumes/rabbitmq/data/:/var/lib/rabbitmq/
+      - ./volumes/rabbitmq/log/:/var/log/rabbitmq/
+    networks:
+      - makonskaitlosana
   minio:
       image: minio/minio
       container_name: 'minio'
@@ -16,6 +18,8 @@ services:
           - ./volumes/minio/data:/data
       ports:
           - 9000:9000
+      networks:
+        - makonskaitlosana
       environment:
           MINIO_ACCESS_KEY: 'minioadmin'
           MINIO_SECRET_KEY: 'minioadmin'
@@ -26,20 +30,23 @@ services:
     restart: on-failure
     ports:
       - "3001:3000"
-    links:
-      - rabbitmq
-      - minio
+    networks:
+      - makonskaitlosana
   mailhog:
     image: mailhog/mailhog
     logging:
       driver: 'none'
+    networks:
+      - makonskaitlosana
     ports:
       - 1025:1025 
       - 8025:8025 
-  mysql:
+  db:
     image: mysql
     command: --default-authentication-plugin=mysql_native_password
     restart: always
+    networks:
+      - makonskaitlosana
     ports:
       - "3306:3306"
     volumes:
@@ -50,7 +57,12 @@ services:
     build: .
     container_name: 'app'
     restart: on-failure
+    networks:
+      - makonskaitlosana
     ports:
       - "3000:3000"
+networks:
+    makonskaitlosana:
+      driver: bridge  
 volumes:
   mysql_db_data_container:
