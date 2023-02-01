@@ -12,28 +12,31 @@ services:
     networks:
       - makonskaitlosana
   minio:
-      image: minio/minio
+      image: bitnami/minio
       container_name: 'minio'
       volumes:
-          - ./volumes/minio/data:/data
+        - ./volumes/minio/data:/data
       ports:
-          - 9000:9000
+        - 9000:9000
+        - 9001:9001
+      environment:
+        - MINIO_ROOT_USER = minio-root-user
+        - MINIO_ROOT_PASSWORD = minio-root-password
       networks:
         - makonskaitlosana
-      environment:
-          MINIO_ACCESS_KEY: 'minioadmin'
-          MINIO_SECRET_KEY: 'minioadmin'
-      command: server /data
   openalpr:
     build: ./openalpr
     container_name: 'openalpr'
     restart: on-failure
+    volumes:
+        - ./openalpr/source/index.js:/source/index.js
     ports:
       - "3001:3000"
     networks:
       - makonskaitlosana
   mailhog:
     image: mailhog/mailhog
+    container_name: 'mailhog'
     logging:
       driver: 'none'
     networks:
@@ -43,6 +46,7 @@ services:
       - 8025:8025 
   db:
     image: mysql
+    container_name: 'db'
     command: --default-authentication-plugin=mysql_native_password
     restart: always
     networks:
@@ -57,6 +61,8 @@ services:
     build: .
     container_name: 'app'
     restart: on-failure
+    volumes:
+        - ./source/index.js:/source/index.js
     networks:
       - makonskaitlosana
     ports:

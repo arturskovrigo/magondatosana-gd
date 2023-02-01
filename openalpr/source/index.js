@@ -6,7 +6,8 @@ const callback = require('amqplib/callback_api');
 const minioURL = 'amqp://minio:9000';
 var minio = require('minio');
 const minioPort = 9000;
-const minioAuth = "minioadmin";
+const minioUser = "minio-root-user";
+const minioPassword = "minio-root-password";
 const storageBucket = "makonskaitlosana";
 
 var minioClient = new minio.Client(
@@ -14,8 +15,8 @@ var minioClient = new minio.Client(
     endPoint: minioURL,
     port: minioPort,
     useSSL: false,
-    accessKey: minioAuth,
-    secretKey: minioAuth
+    accessKey: minioUser,
+    secretKey: minioPassword
     }
 );
 
@@ -65,7 +66,7 @@ app.get('/list', (req, res) =>
     }
 );
 
-const rabbitURL = 'amqp://rabbitmq:5672';
+const rabbitURL = 'rabbitmq:5672';
 const rabbitMqQueue = 'car-pictures';
 
 callback.connect(rabbitURL, function(error, connection) 
