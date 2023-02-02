@@ -105,6 +105,7 @@ app.post('/in', async (req, res) => {
             });
         }
     } catch (err) {
+        console.log(err);
         res.status(500).send(err);
     }
     res.send("OK");
@@ -119,10 +120,8 @@ app.post('/out', async (req, res) => {
             });
         } else {
             let image = req.files.image;
-            
             addToBucket(image);
             appendQueue(image.name, true);
-
             res.send({
                 status: true,
                 message: 'File is uploaded',
@@ -134,6 +133,7 @@ app.post('/out', async (req, res) => {
             });
         }
     } catch (err) {
+        console.log(err);
         res.status(500).send(err);
     }
     res.send("OK");

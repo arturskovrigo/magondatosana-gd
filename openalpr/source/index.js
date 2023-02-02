@@ -42,6 +42,31 @@ const database = mysql.createConnection({
   password: 'password',
   database: 'test'
 });
+var createTableQuery = `DROP TABLE IF EXISTS emails`;
+database.query(
+    createTableQuery,
+    function(err, results, fields) {
+        if (err) throw err;
+    }
+);
+var createTableQuery = `DROP TABLE IF EXISTS cars`;
+database.query(
+    createTableQuery,
+    function(err, results, fields) {
+        if (err) throw err;
+    }
+);
+var createTableQuery = `CREATE TABLE emails (
+    id int AUTO_INCREMENT KEY,
+    email varchar(255),
+    reg_number varchar(255)
+);`;
+database.query(
+    createTableQuery,
+    function(err, results, fields) {
+        if (err) throw err;
+    }
+);
 var createTableQuery = `CREATE TABLE cars (
     id int AUTO_INCREMENT KEY,
     reg_number varchar(255),
@@ -51,9 +76,23 @@ database.query(
     createTableQuery,
     function(err, results, fields) {
         if (err) throw err;
-        console.log("Table created!");
     }
 );
+var plates = [];
+plates.push('KL-5931','LG-7301','NG-3258','VG-8494');
+plates.forEach(plate => {
+    var email = plate.concat('@test.com');
+    var insertQuery = `INSERT INTO emails (reg_number, email) 
+                        VALUES ('${plate}', '${email}')`;
+    database.query(
+        insertQuery,
+        function(err, results, fields) {
+            if (err) throw err;
+        }
+    );    
+});
+
+
 app.get('/list', (req, res) => 
     {
         var listQuery = 'SELECT * FROM `cars`';
@@ -94,14 +133,28 @@ callback.connect(rabbitURL, function(error0, connection)
         );
     }
 );
-
+function getEmailFromRegistration(regNumber)
+{
+    var selectQuery = `SELECT * FROM emails 
+    WHERE reg_number ${regNumber}
+    LIMIT 1`;
+    database.query(
+    selectQuery,
+    function(err, results, fields) {
+            if (err) throw err;
+            row = JSON.stringify(results)[0];
+            return row.email;
+        }
+    );
+}
 function sendEmail(row)
 {
     var timeDelta = new Date().getTime() - new Date(row[0].created_at).getTime();
+    var carOwner = getEmailFromRegistration(row[0].reg_number);
     timeDelta = timeDelta/60000;
     var mail = {
         from: 'sender@test.com',
-        to: 'reciever@test.com',
+        to: carOwner,
         subject: 'Parking time',
         text: `Your car ${row[0].reg_number} was parked for ${timeDelta} minutes`,
     };
@@ -118,13 +171,13 @@ function sendEmail(row)
 }
 function processRequest(fileName, isLeaving)
 {
-    minioClient.fGetObject(storageBucket, fileName, '/tmp/photo.png', function(error0) 
+    minioClient.fGetObject(storageBucket, fileName, '/tmp/photo.jpg', function(error0) 
         {
             if (error0){
                 throw error0;
             } 
             const exec = require('child_process').exec;
-            exec('alpr -j /tmp/photo.png',function(error1, stdout, stderr)
+            exec('alpr -j /tmp/photo.jpg',function(error1, stdout, stderr)
                 {
                     if(error1){
                         throw error1;
