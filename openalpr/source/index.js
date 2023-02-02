@@ -3,7 +3,7 @@ const app = express();
 
 const callback = require('amqplib/callback_api');
 
-const minioURL = 'amqp://minio:9000';
+const minioURL = 'minio';
 var minio = require('minio');
 const minioPort = 9000;
 const minioUser = "minio-root-user";
@@ -35,16 +35,17 @@ var mailer = nodemailer.createTransport({
     },
 });
 const mysql = require('mysql2');
-const mysqlURL = 'mysql://db:3306';
+const mysqlURL =  'db';
 const database = mysql.createConnection({
   host: mysqlURL,
   user: 'root',
+  password: 'password',
   database: 'test'
 });
 var createTableQuery = `CREATE TABLE cars (
-    id int AUTO_INCREMENT,
+    id int AUTO_INCREMENT KEY,
     reg_number varchar(255),
-    created_at DATETIME,
+    created_at DATETIME
 );`;
 database.query(
     createTableQuery,
@@ -66,15 +67,19 @@ app.get('/list', (req, res) =>
     }
 );
 
-const rabbitURL = 'rabbitmq:5672';
-const rabbitMqQueue = 'car-pictures';
+const rabbitURL = 'amqp://rabbitmq';
+const rabbitMqQueue = 'car-plates';
 
-callback.connect(rabbitURL, function(error, connection) 
+callback.connect(rabbitURL, function(error0, connection) 
     {
-        if (error) throw error;
-        connection.createChannel(function(error, channel) 
+        if (error0){
+            throw error0;
+        } 
+        connection.createChannel(function(error1, channel) 
             {
-                if (error) throw error;
+                if (error1){
+                    throw error1;
+                }
                 channel.assertQueue(rabbitMqQueue, {durable: true});
                 channel.consume(rabbitMqQueue, function(msg) 
                     {
@@ -113,12 +118,17 @@ function sendEmail(row)
 }
 function processRequest(fileName, isLeaving)
 {
-    minioClient.fGetObject(storageBucket, fileName, '/tmp/photo.png', function(err) 
+    minioClient.fGetObject(storageBucket, fileName, '/tmp/photo.png', function(error0) 
         {
-            if (err) throw err;
+            if (error0){
+                throw error0;
+            } 
             const exec = require('child_process').exec;
-            exec('alpr -j /tmp/photo.png',function(error, stdout, stderr)
+            exec('alpr -j /tmp/photo.png',function(error1, stdout, stderr)
                 {
+                    if(error1){
+                        throw error1;
+                    }
                     var reg_number = JSON.parse(stdout.toString())[0].reg_number;
                     if (isLeaving){
                         var selectQuery = `SELECT * FROM cars 

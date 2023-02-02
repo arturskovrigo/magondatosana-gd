@@ -1,11 +1,12 @@
 version: "3.8"
 services:
   rabbitmq:
-    image: rabbitmq:latest
+    image: rabbitmq:management 
     container_name: 'rabbitmq'
     ports:
       - 5672:5672
       - 15672:15672
+      - 8080:8080 
     volumes:
       - ./volumes/rabbitmq/data/:/var/lib/rabbitmq/
       - ./volumes/rabbitmq/log/:/var/log/rabbitmq/
@@ -20,8 +21,8 @@ services:
         - 9000:9000
         - 9001:9001
       environment:
-        - MINIO_ROOT_USER = minio-root-user
-        - MINIO_ROOT_PASSWORD = minio-root-password
+        - MINIO_ROOT_USER=rootUser
+        - MINIO_ROOT_PASSWORD=rootUser
       networks:
         - makonskaitlosana
   openalpr:
@@ -56,7 +57,10 @@ services:
     volumes:
       - mysql_db_data_container:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: password
+      - MYSQL_USER=test
+      - MYSQL_PASSWORD=test
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=test
   app:
     build: .
     container_name: 'app'
