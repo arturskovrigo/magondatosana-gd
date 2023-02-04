@@ -6,8 +6,8 @@ const callback = require('amqplib/callback_api');
 const minioURL = 'minio';
 var minio = require('minio');
 const minioPort = 9000;
-const minioUser = "minio-root-user";
-const minioPassword = "minio-root-password";
+const minioUser = "rootUser";
+const minioPassword = "rootUser";
 const storageBucket = "makonskaitlosana";
 
 var minioClient = new minio.Client(
@@ -21,7 +21,7 @@ var minioClient = new minio.Client(
 );
 
 
-const mailURL = 'mailhog:1025';
+const mailURL = 'mailhog';
 var nodemailer = require('nodemailer');
 const mailPort = 1025;
 
@@ -79,7 +79,7 @@ database.query(
     }
 );
 var plates = [];
-plates.push('KL-5931','LG-7301','NG-3258','VG-8494');
+plates.push('KL5931','LG7301','NG3258','VG8494');
 plates.forEach(plate => {
     var email = plate.concat('@test.com');
     var insertQuery = `INSERT INTO emails (reg_number, email) 
@@ -133,39 +133,38 @@ callback.connect(rabbitURL, function(error0, connection)
         );
     }
 );
-function getEmailFromRegistration(regNumber)
-{
-    var selectQuery = `SELECT * FROM emails 
-    WHERE reg_number ${regNumber}
-    LIMIT 1`;
-    database.query(
-    selectQuery,
-    function(err, results, fields) {
-            if (err) throw err;
-            row = JSON.stringify(results)[0];
-            return row.email;
-        }
-    );
-}
+
 function sendEmail(row)
 {
-    var timeDelta = new Date().getTime() - new Date(row[0].created_at).getTime();
-    var carOwner = getEmailFromRegistration(row[0].reg_number);
+    var timeDelta = new Date().getTime() - new Date(row.created_at).getTime();
     timeDelta = timeDelta/60000;
-    var mail = {
-        from: 'sender@test.com',
-        to: carOwner,
-        subject: 'Parking time',
-        text: `Your car ${row[0].reg_number} was parked for ${timeDelta} minutes`,
-    };
+    var selectQuery = `SELECT * FROM emails 
+    WHERE reg_number = "${row.reg_number}"
+    LIMIT 1;`;
+    var email = null;
 
-    mailer.sendMail(mail, function(error, info)
-        {
-            if (error) {
-                console.log(error);
-            } else {
-                console.log('Email sent: ' + info.response);
-            }
+    database.query(
+        selectQuery,
+        function(err, results, fields) {
+            if (err) throw err;
+            email = results[0].email;
+            console.log("1");
+            console.log(email);
+            var mail = {
+                from: 'sender@test.com',
+                to: email,
+                subject: 'Parking time',
+                text: `Your car ${row.reg_number} was parked for ${timeDelta} minutes`,
+            };
+            mailer.sendMail(mail, function(error, info)
+                {
+                    if (error) {
+                        console.log(error);
+                    } else {
+                        console.log('Email sent: ' + info.response);
+                    }
+                }
+            );  
         }
     );
 }
@@ -177,33 +176,33 @@ function processRequest(fileName, isLeaving)
                 throw error0;
             } 
             const exec = require('child_process').exec;
-            exec('alpr -j /tmp/photo.jpg',function(error1, stdout, stderr)
+            exec('alpr -c eu -j /tmp/photo.jpg',function(error1, stdout, stderr)
                 {
                     if(error1){
                         throw error1;
-                    }
-                    var reg_number = JSON.parse(stdout.toString())[0].reg_number;
-                    if (isLeaving){
-                        var selectQuery = `SELECT * FROM cars 
-                                                    WHERE reg_number ${reg_number}
-                                                    ORDER BY created_at DESC 
-                                                    LIMIT 1`;
+                    }   
+                    var reg_number = JSON.parse(stdout.toString()).results[0].plate;
+                     if (isLeaving){
+                        var selectQuery = `SELECT * FROM cars
+                                        WHERE reg_number = "${reg_number}"
+                                        ORDER BY created_at DESC
+                                        LIMIT 1;`;
                         database.query(
                             selectQuery,
                             function(err, results, fields) {
                                 if (err) throw err;
-                                sendEmail(JSON.stringify(results));
+                                sendEmail(results[0]);
                             }
                         );
                     }
                     else
                     {
-                        var insertQuery = `INSERT INTO cars (reg_number, created_at) 
-                                            VALUES (${reg_number}, ${new Date().toLocaleString([['sv-SE']])})`;
+                        var insertQuery = `INSERT INTO cars (reg_number, created_at) VALUES ("${reg_number}", "${new Date().toLocaleString([['sv-SE']])}");`;
                         database.query(
                             insertQuery,
                             function(err, results, fields) {
                                 if (err) throw err;
+                                console.log(results);
                             }
                         );
                     }

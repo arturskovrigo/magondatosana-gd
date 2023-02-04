@@ -73,7 +73,7 @@ function addToBucket(file)
             return console.log(err)
           }
           if (exists) {
-            minioClient.putObject(storageBucket, file.name, file, function(err, objInfo) {
+            minioClient.putObject(storageBucket, file.name, file.data, function(err, objInfo) {
                 if(err) {
                     return console.log(err)
                 }
@@ -108,7 +108,7 @@ app.post('/in', async (req, res) => {
         console.log(err);
         res.status(500).send(err);
     }
-    res.send("OK");
+    console.log("Car In");
 });
 
 app.post('/out', async (req, res) => {
@@ -136,7 +136,7 @@ app.post('/out', async (req, res) => {
         console.log(err);
         res.status(500).send(err);
     }
-    res.send("OK");
+    console.log("Car Out");
 });
 app.listen(3000, () => {
     console.log('app is running')

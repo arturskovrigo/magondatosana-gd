@@ -69,8 +69,13 @@ services:
         - ./source/index.js:/source/index.js
     networks:
       - makonskaitlosana
+    command:
+      - node
+      - "--inspect-brk=0.0.0.0"
+      - "."
     ports:
       - "3000:3000"
+      - "9229:9229"
 networks:
     makonskaitlosana:
       driver: bridge  
