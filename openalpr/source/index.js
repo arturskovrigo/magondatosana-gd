@@ -168,6 +168,34 @@ function sendEmail(row)
         }
     );
 }
+function databaseStep(reg_number, isLeaving)
+{
+    console.log(reg_number);
+    if (isLeaving){
+        var selectQuery = `SELECT * FROM cars
+                        WHERE reg_number = "${reg_number}"
+                        ORDER BY created_at DESC
+                        LIMIT 1;`;
+        database.query(
+            selectQuery,
+            function(err, results, fields) {
+                if (err) throw err;
+                sendEmail(results[0]);
+            }
+        );
+    }
+    else
+    {
+        var insertQuery = `INSERT INTO cars (reg_number, created_at) VALUES ("${reg_number}", "${new Date().toLocaleString([['sv-SE']])}");`;
+        database.query(
+            insertQuery,
+            function(err, results, fields) {
+                if (err) throw err;
+                console.log(results);
+            }
+        );
+    }
+}
 function processRequest(fileName, isLeaving)
 {
     minioClient.fGetObject(storageBucket, fileName, '/tmp/photo.jpg', function(error0) 
@@ -176,39 +204,26 @@ function processRequest(fileName, isLeaving)
                 throw error0;
             } 
             const exec = require('child_process').exec;
+            var reg_number = null;
             exec('alpr -c eu -j /tmp/photo.jpg',function(error1, stdout, stderr)
                 {
                     if(error1){
-                        throw error1;
-                    }   
-                    var reg_number = JSON.parse(stdout.toString()).results[0].plate;
-                     if (isLeaving){
-                        var selectQuery = `SELECT * FROM cars
-                                        WHERE reg_number = "${reg_number}"
-                                        ORDER BY created_at DESC
-                                        LIMIT 1;`;
-                        database.query(
-                            selectQuery,
-                            function(err, results, fields) {
-                                if (err) throw err;
-                                sendEmail(results[0]);
+                        exec('alpr -j /tmp/photo.jpg',function(error2, stdout, stderr)
+                        {
+                            if(error2)
+                            {
+                                throw error2;
                             }
-                        );
+                            reg_number = JSON.parse(stdout.toString()).results[0].plate;
+                            databaseStep(reg_number, isLeaving);
+                        });
+                    }  
+                    else{
+                        reg_number = JSON.parse(stdout.toString()).results[0].plate;
+                        databaseStep(reg_number, isLeaving);
                     }
-                    else
-                    {
-                        var insertQuery = `INSERT INTO cars (reg_number, created_at) VALUES ("${reg_number}", "${new Date().toLocaleString([['sv-SE']])}");`;
-                        database.query(
-                            insertQuery,
-                            function(err, results, fields) {
-                                if (err) throw err;
-                                console.log(results);
-                            }
-                        );
-                    }
-                }
-            )
-            console.log('success')
+                    console.log(reg_number);
+                });
         }
     )
 }
